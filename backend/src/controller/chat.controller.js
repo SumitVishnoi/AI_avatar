@@ -67,3 +67,38 @@ export const messageContent = async (req, res) => {
 
   console.log("Upsert successful:", result);
 };
+
+
+export const askQuery = async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    const documentIndex = index.namespace("default").documents;
+
+    const result = await documentIndex.search({
+      scoreBy: [
+        {
+          type: "embed",
+          field: "text",
+          query,
+        },
+      ],
+      topK: 3,
+      includeFields: ["text", "fileName", "chunkIndex"],
+    });
+
+    console.log("Matches:", result.matches);
+
+    return res.status(200).json({
+      success: true,
+      result: result.matches,
+    });
+  } catch (error) {
+    console.error("Search error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
