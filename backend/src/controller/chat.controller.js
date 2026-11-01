@@ -73,6 +73,8 @@ export const askQuery = async (req, res) => {
   try {
     const { query } = req.body;
 
+    console.log("query: ", query)
+
     const documentIndex = index.namespace("default").documents;
 
     const result = await documentIndex.search({
