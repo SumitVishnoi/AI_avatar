@@ -1,8 +1,8 @@
 import axios from "axios"
 
 const api = axios.create({
-    baseUrl: "http://localhost:3000",
-    withcredentials: true
+    baseURL: "http://localhost:3000",
+    withCredentials: true
 })
 
 export const sendMessage = async(formData)=> {
@@ -11,7 +11,7 @@ export const sendMessage = async(formData)=> {
     return response.data
 }
 
-export const askQuery = async({query})=> {
+export const askQuery = async(query)=> {
     const response = await api.post("/api/chat/ask", {
         query
     })

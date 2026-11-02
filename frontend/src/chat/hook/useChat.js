@@ -13,9 +13,9 @@ export const useChat = () => {
     }
   };
 
-  const handleAskQuery = async ({ query }) => {
+  const handleAskQuery = async (query) => {
     try {
-      const data = await askQuery({ query });
+      const data = await askQuery(query);
       console.log(data);
     } catch (error) {
       console.error("Ask Query Error:", error.response?.data || error.message);
