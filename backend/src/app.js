@@ -1,5 +1,6 @@
 import express from "express"
 import chatRouter from "./routes/chat.routes.js"
+import livekitRouter from "./routes/livekit.routes.js"
 import cors from "cors"
 
 const app = express()
@@ -11,5 +12,6 @@ app.use(cors({
 }))
 
 app.use("/api/chat", chatRouter)
+app.use("/api/livekit", livekitRouter)
 
 export default app

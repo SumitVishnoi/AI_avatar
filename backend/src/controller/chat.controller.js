@@ -20,8 +20,6 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
 });
 
 export const messageContent = async (req, res) => {
-  console.log(req.file);
-
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -35,10 +33,7 @@ export const messageContent = async (req, res) => {
   const parser = new PDFParse(fileUint8Array);
   const document = await parser.getText();
 
-  console.log(document);
   const texts = await splitter.splitText(document.text);
-
-  console.log(texts);
 
   // const embeddingText = await embeddings.embedDocuments(texts);
   // console.log(embeddingText);
@@ -61,11 +56,15 @@ export const messageContent = async (req, res) => {
     });
   }
 
-  const result = await index.namespace("default").upsertDocuments({
+  await index.namespace("default").upsertDocuments({
     documents,
   });
 
-  console.log("Upsert successful:", result);
+  return res.status(201).json({
+    success: true,
+    fileName: data.originalname,
+    chunks: documents.length,
+  });
 };
 
 
