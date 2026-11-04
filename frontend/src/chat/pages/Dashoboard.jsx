@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import heroImage from "../../assets/hero.png";
 import { useChat } from "../hook/useChat";
 import { useLiveKitAvatar } from "../hook/useLiveKitAvatar";
 
@@ -71,6 +70,8 @@ const Dashboard = () => {
     videoTrack,
     videoRef,
     audioRef,
+    isMicrophoneEnabled,
+    setMicrophoneEnabled,
   } = useLiveKitAvatar();
   const messagesRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -149,8 +150,17 @@ const Dashboard = () => {
 
     try {
       await connectAvatar();
+      await setMicrophoneEnabled(true);
     } catch {
-      // The hook keeps and exposes the connection error for the avatar panel.
+      // The hook keeps and exposes connection and microphone errors for the avatar panel.
+    }
+  };
+
+  const handleMicrophoneToggle = async () => {
+    try {
+      await setMicrophoneEnabled(!isMicrophoneEnabled);
+    } catch {
+      // The hook keeps and exposes microphone errors for the avatar panel.
     }
   };
 
@@ -307,21 +317,44 @@ const Dashboard = () => {
               <span className={`connection-pill ${avatarStatus}`}><span />{statusLabel}</span>
             </div>
 
-            <div className={`avatar-stage${videoTrack ? " has-video" : ""}`}>
+            <div className={`avatar-stage${videoTrack ? " has-video" : ""}${isMicrophoneEnabled ? " mic-active" : ""}`}>
               <div className="stage-grid" />
               <div className="stage-orbit orbit-one" />
               <div className="stage-orbit orbit-two" />
-              <img src={heroImage} alt="" className="avatar-art" />
+              <div className="avatar-idle-art" aria-hidden="true">
+                <span className="avatar-idle-halo" />
+                <span className="avatar-idle-bust"><i /></span>
+                <span className="avatar-idle-sparkle"><Icon name="sparkle" size={17} /></span>
+              </div>
               <video ref={videoRef} className="avatar-video" autoPlay playsInline aria-label="Mira avatar video" />
               <div ref={audioRef} className="avatar-audio" />
               {!videoTrack && (
                 <div className="avatar-placeholder-copy">
                   <span className="avatar-presence"><i /></span>
-                  <strong>{avatarStatus === "connected" ? "Mira is joining the room." : "Your companion, in real time."}</strong>
-                  <span>{avatarStatus === "connected" ? "Waiting for the Synthesia participant to join…" : "Connect to start a face-to-face conversation."}</span>
+                  <strong>
+                    {isMicrophoneEnabled
+                      ? "Mira is listening."
+                      : avatarStatus === "connected"
+                        ? "Mira is joining the room."
+                        : avatarStatus === "connecting"
+                          ? "Connecting Mira…"
+                          : "Your companion, in real time."}
+                  </strong>
+                  <span>
+                    {isMicrophoneEnabled
+                      ? "Speak naturally, or use the chat to share a thought."
+                      : avatarStatus === "connected"
+                        ? "Waiting for Mira to join the room…"
+                        : "Start a conversation to bring Mira to life."}
+                  </span>
                 </div>
               )}
-              <div className="stage-caption"><span className="caption-orb"><Icon name="sparkle" size={13} /></span><span>Mira</span><i /></div>
+              <div className="stage-caption">
+                <span className="caption-orb"><Icon name="sparkle" size={13} /></span>
+                <span>Mira</span>
+                <i />
+                {isMicrophoneEnabled && <span className="listening-label">Listening</span>}
+              </div>
             </div>
 
             {avatarError && <p className="avatar-error" role="alert">{avatarError}</p>}
@@ -332,12 +365,24 @@ const Dashboard = () => {
               </div>
               <button
                 type="button"
+                className={`microphone-button${isMicrophoneEnabled ? " active" : ""}`}
+                onClick={handleMicrophoneToggle}
+                disabled={avatarStatus !== "connected"}
+                aria-label={isMicrophoneEnabled ? "Mute microphone" : "Enable microphone"}
+                aria-pressed={isMicrophoneEnabled}
+                title={avatarStatus === "connected" ? undefined : "Start a conversation to use your microphone"}
+              >
+                <Icon name="mic" size={16} />
+                {isMicrophoneEnabled ? "Mute" : "Mic"}
+              </button>
+              <button
+                type="button"
                 className={`connect-button${avatarStatus === "connected" ? " connected" : ""}`}
                 onClick={handleAvatarToggle}
                 disabled={avatarStatus === "connecting"}
               >
                 <Icon name={avatarStatus === "connected" ? "close" : "video"} size={17} />
-                {avatarStatus === "connected" ? "Leave session" : avatarStatus === "connecting" ? "Connecting…" : "Talk to Mira"}
+                {avatarStatus === "connected" ? "End session" : avatarStatus === "connecting" ? "Connecting…" : "Talk to Mira"}
               </button>
             </div>
 

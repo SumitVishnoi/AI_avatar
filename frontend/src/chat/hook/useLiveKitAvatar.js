@@ -7,6 +7,7 @@ export const useLiveKitAvatar = () => {
   const [status, setStatus] = useState("disconnected");
   const [error, setError] = useState("");
   const [videoTrack, setVideoTrack] = useState(null);
+  const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false);
   const videoRef = useRef(null);
   const audioRef = useRef(null);
 
@@ -14,10 +15,25 @@ export const useLiveKitAvatar = () => {
     const room = roomRef.current;
     roomRef.current = null;
     setVideoTrack(null);
+    setIsMicrophoneEnabled(false);
     setError("");
     setStatus("disconnected");
     audioRef.current?.replaceChildren();
     if (room) await room.disconnect();
+  }, []);
+
+  const setMicrophoneEnabled = useCallback(async (enabled) => {
+    const room = roomRef.current;
+    if (!room) throw new Error("Connect to Mira before enabling your microphone.");
+
+    try {
+      await room.localParticipant.setMicrophoneEnabled(enabled);
+      setIsMicrophoneEnabled(enabled);
+      setError("");
+    } catch (microphoneError) {
+      setError(microphoneError.message || "Could not access your microphone.");
+      throw microphoneError;
+    }
   }, []);
 
   const connect = useCallback(async () => {
@@ -54,6 +70,7 @@ export const useLiveKitAvatar = () => {
         if (roomRef.current === room) {
           roomRef.current = null;
           setVideoTrack(null);
+          setIsMicrophoneEnabled(false);
           audioRef.current?.replaceChildren();
           setStatus("disconnected");
         }
@@ -91,5 +108,15 @@ export const useLiveKitAvatar = () => {
     if (room) void room.disconnect();
   }, []);
 
-  return { connect, disconnect, error, status, videoTrack, videoRef, audioRef };
+  return {
+    connect,
+    disconnect,
+    error,
+    status,
+    videoTrack,
+    videoRef,
+    audioRef,
+    isMicrophoneEnabled,
+    setMicrophoneEnabled,
+  };
 };

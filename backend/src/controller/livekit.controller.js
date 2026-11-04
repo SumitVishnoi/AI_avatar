@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, TrackSource } from "livekit-server-sdk";
 
 export const createAvatarToken = async (_req, res) => {
   const { LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL } = process.env;
@@ -21,7 +21,7 @@ export const createAvatarToken = async (_req, res) => {
   accessToken.addGrant({
     roomJoin: true,
     room: roomName,
-    canPublish: false,
+    canPublishSources: [TrackSource.MICROPHONE],
     canSubscribe: true,
   });
 
