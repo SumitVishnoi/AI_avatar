@@ -492,6 +492,32 @@ input:focus-visible {
   white-space: pre-wrap;
 }
 
+.speech-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 7px;
+  color: #867b9d;
+  background: transparent;
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.speech-button:hover:not(:disabled) {
+  color: #7152cd;
+  background: #f3effc;
+}
+
+.speech-button:disabled,
+.composer-tool:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .message-row.user .message-bubble {
   border-color: #e7defe;
   border-radius: 14px 3px 14px 14px;
@@ -611,6 +637,11 @@ input:focus-visible {
   background: #f3effc;
 }
 
+.composer-tool.listening {
+  color: #fff;
+  background: #8a67e8;
+}
+
 .send-button {
   width: 37px;
   height: 37px;
@@ -683,6 +714,10 @@ input:focus-visible {
   color: #aaa5b1;
   font-size: 9px;
   text-align: center;
+}
+
+.composer-hint.speech-error {
+  color: #a64949;
 }
 
 .avatar-panel {

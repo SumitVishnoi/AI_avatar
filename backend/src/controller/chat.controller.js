@@ -2,6 +2,7 @@ import { PDFParse } from "pdf-parse";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { Pinecone } from "@pinecone-database/pinecone";
+import { generateAnswer } from "../services/ai.models.js";
 
 const pc = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY,
@@ -34,9 +35,6 @@ export const messageContent = async (req, res) => {
   const document = await parser.getText();
 
   const texts = await splitter.splitText(document.text);
-
-  // const embeddingText = await embeddings.embedDocuments(texts);
-  // console.log(embeddingText);
 
   const documents = [];
 
@@ -72,7 +70,12 @@ export const askQuery = async (req, res) => {
   try {
     const { query } = req.body;
 
-    console.log("query: ", query)
+    if (typeof query !== "string" || !query.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "A question is required.",
+      });
+    }
 
     const documentIndex = index.namespace("default").documents;
 
@@ -81,25 +84,34 @@ export const askQuery = async (req, res) => {
         {
           type: "embed",
           field: "text",
-          query,
+          query: query.trim(),
         },
       ],
       topK: 3,
       includeFields: ["text", "fileName", "chunkIndex"],
     });
 
-    console.log("Matches:", result.matches);
+    const matches = Array.isArray(result.matches) ? result.matches : [];
+    const passages = matches
+      .map((match) => ({
+        text: match?.fields?.text ?? match?.metadata?.text ?? match?.text,
+        fileName: match?.fields?.fileName ?? match?.metadata?.fileName,
+      }))
+      .filter((passage) => typeof passage.text === "string" && passage.text.trim())
+      .map((passage) => ({ ...passage, text: passage.text.trim() }));
+    const answer = await generateAnswer(query.trim(), passages);
 
     return res.status(200).json({
       success: true,
-      result: result.matches,
+      answer,
+      result: matches,
     });
   } catch (error) {
-    console.error("Search error:", error);
+    console.error("Question answering error:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Could not generate an answer. Please try again.",
     });
   }
 };

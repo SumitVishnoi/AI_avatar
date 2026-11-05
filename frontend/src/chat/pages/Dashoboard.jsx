@@ -11,6 +11,8 @@ const icons = {
   send: ["m22 2-7 20-4-9-9-4Z", "M22 2 11 13"],
   settings: ["M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z", "M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.6 2.8-.2-.1a1.7 1.7 0 0 0-1.9.3l-.1.1h-3.2l-.1-.2a1.7 1.7 0 0 0-1.7-1l-.2.1-2.8-1.6.1-.2a1.7 1.7 0 0 0-.3-1.9l-.1-.1v-3.2l.2-.1a1.7 1.7 0 0 0 1-1.7l-.1-.2 1.6-2.8.2.1a1.7 1.7 0 0 0 1.9-.3l.1-.1h3.2l.1.2a1.7 1.7 0 0 0 1.7 1l.2-.1 2.8 1.6-.1.2a1.7 1.7 0 0 0 .3 1.9l.1.1v3.2Z"],
   sparkle: ["m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z", "m19 14 1.2 2.8L23 18l-2.8 1.2L19 22l-1.2-2.8L15 18l2.8-1.2L19 14Z"],
+  speaker: ["M11 5 6 9H2v6h4l5 4V5Z", "M15.5 8.5a5 5 0 0 1 0 7", "M19 5a10 10 0 0 1 0 14"],
+  stop: ["M6 6h12v12H6z"],
   video: ["m15 10 5-3v10l-5-3", "M3 6h12v12H3z"],
 };
 
@@ -42,9 +44,11 @@ const createQueryMessage = (data) => {
   return {
     id: createId(),
     role: "assistant",
-    text: sources.length
-      ? `I found ${sources.length} relevant ${sources.length === 1 ? "passage" : "passages"} in your documents.`
-      : "I couldn’t find a matching passage in your uploaded documents. Try another question or add a document.",
+    text: typeof data?.answer === "string" && data.answer.trim()
+      ? data.answer.trim()
+      : sources.length
+        ? `I found ${sources.length} relevant ${sources.length === 1 ? "passage" : "passages"} in your documents.`
+        : "I couldn’t find a matching passage in your uploaded documents. Try another question or add a document.",
     sources,
   };
 };
@@ -54,6 +58,11 @@ const Dashboard = () => {
   const [file, setFile] = useState(null);
   const [uploadedCount, setUploadedCount] = useState(0);
   const [isSending, setIsSending] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
+  const [isSpeechSynthesisSupported, setIsSpeechSynthesisSupported] = useState(false);
+  const [speechError, setSpeechError] = useState("");
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [messages, setMessages] = useState([
     {
       id: "welcome",
@@ -75,11 +84,89 @@ const Dashboard = () => {
   } = useLiveKitAvatar();
   const messagesRef = useRef(null);
   const fileInputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     const list = messagesRef.current;
     if (list) list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [messages, isSending]);
+
+  useEffect(() => {
+    setIsSpeechRecognitionSupported(Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
+    setIsSpeechSynthesisSupported(Boolean(window.speechSynthesis && window.SpeechSynthesisUtterance));
+
+    return () => {
+      recognitionRef.current?.abort();
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
+  const handleVoiceInput = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    const baseQuery = query.trim();
+    recognitionRef.current = recognition;
+    recognition.lang = navigator.language || "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    setSpeechError("");
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0].transcript)
+        .join(" ")
+        .trim();
+      setQuery([baseQuery, transcript].filter(Boolean).join(" "));
+    };
+    recognition.onerror = (event) => {
+      if (event.error !== "aborted") {
+        setSpeechError(`Speech recognition failed: ${event.error}.`);
+      }
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+
+    try {
+      recognition.start();
+      setIsListening(true);
+    } catch (error) {
+      recognitionRef.current = null;
+      setSpeechError(error.message || "Could not start speech recognition.");
+    }
+  };
+
+  const handleSpeakMessage = (message) => {
+    if (!isSpeechSynthesisSupported) return;
+
+    if (speakingMessageId === message.id) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(message.text);
+    utterance.lang = navigator.language || "en-US";
+    utterance.onend = () => {
+      setSpeakingMessageId((currentId) => (currentId === message.id ? null : currentId));
+    };
+    utterance.onerror = () => {
+      setSpeakingMessageId((currentId) => (currentId === message.id ? null : currentId));
+    };
+    setSpeakingMessageId(message.id);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const submitMessage = async (event) => {
     event.preventDefault();
@@ -251,6 +338,19 @@ const Dashboard = () => {
                       {message.sources?.map((source, index) => (
                         <blockquote className="source-card" key={`${message.id}-${index}`}>{source}</blockquote>
                       ))}
+                      {message.role === "assistant" && message.text && !message.isError && (
+                        <button
+                          className="speech-button"
+                          type="button"
+                          onClick={() => handleSpeakMessage(message)}
+                          disabled={!isSpeechSynthesisSupported}
+                          aria-label={speakingMessageId === message.id ? "Stop reading response" : "Read response aloud"}
+                          title={isSpeechSynthesisSupported ? "Read response aloud" : "Speech playback is not supported in this browser"}
+                        >
+                          <Icon name={speakingMessageId === message.id ? "stop" : "speaker"} size={14} />
+                          {speakingMessageId === message.id ? "Stop" : "Listen"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </article>
@@ -297,14 +397,24 @@ const Dashboard = () => {
                   onChange={(event) => setQuery(event.target.value)}
                   aria-label="Message Mira"
                 />
-                <button className="composer-tool voice-tool" type="button" aria-label="Voice input (coming soon)" title="Voice input coming soon">
+                <button
+                  className={`composer-tool voice-tool${isListening ? " listening" : ""}`}
+                  type="button"
+                  onClick={handleVoiceInput}
+                  disabled={!isSpeechRecognitionSupported}
+                  aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                  aria-pressed={isListening}
+                  title={isSpeechRecognitionSupported ? (isListening ? "Stop voice input" : "Dictate a message") : "Speech recognition is not supported in this browser"}
+                >
                   <Icon name="mic" size={18} />
                 </button>
                 <button className="send-button" type="submit" disabled={isSending || (!query.trim() && !file)} aria-label="Send message">
                   <Icon name="send" size={17} />
                 </button>
               </form>
-              <div className="composer-hint">Mira can make mistakes. Check important information.</div>
+              <div className={`composer-hint${speechError ? " speech-error" : ""}`} role={speechError ? "alert" : undefined}>
+                {speechError || (isListening ? "Listening… speak your message." : "Mira can make mistakes. Check important information.")}
+              </div>
             </div>
           </section>
 
