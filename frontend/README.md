@@ -9,7 +9,7 @@ Currently, two official plugins are available:
 
 ## Live avatar setup
 
-The avatar panel connects to a LiveKit room and renders the remote avatar's audio and video tracks. Configure the backend using `../backend/.env.example` and keep the LiveKit API secret on the server. Set `LIVEKIT_ROOM` to the room that your Synthesia LiveKit app or agent joins. The browser requests a short-lived participant token from `POST /api/livekit/token`.
+The avatar panel connects to a LiveKit room and renders the remote avatar's audio and video tracks.keep the LiveKit API secret on the server. Set `LIVEKIT_ROOM` to the room that your Synthesia LiveKit app or agent joins, and set `SYNTHESIA_AVATAR_ID` in the backend environment. The connected Synthesia app or agent must use that attribute to select the avatar. The browser requests a short-lived participant token from `POST /api/livekit/token`.
 
 Run the backend on port `3000` and the Vite app on port `5173`. Document uploads and questions use the existing chat API on the backend.
 
