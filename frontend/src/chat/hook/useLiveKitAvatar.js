@@ -6,6 +6,7 @@ export const useLiveKitAvatar = () => {
   const roomRef = useRef(null);
   const [status, setStatus] = useState("disconnected");
   const [error, setError] = useState("");
+  const [avatarId, setAvatarId] = useState("");
   const [videoTrack, setVideoTrack] = useState(null);
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false);
   const videoRef = useRef(null);
@@ -15,6 +16,7 @@ export const useLiveKitAvatar = () => {
     const room = roomRef.current;
     roomRef.current = null;
     setVideoTrack(null);
+    setAvatarId("");
     setIsMicrophoneEnabled(false);
     setError("");
     setStatus("disconnected");
@@ -43,10 +45,11 @@ export const useLiveKitAvatar = () => {
     setStatus("connecting");
 
     try {
-      const { serverUrl, token } = await requestAvatarToken();
-      if (!serverUrl || !token) {
-        throw new Error("The avatar connection response is missing its server URL or token.");
+      const { serverUrl, token, avatarId: selectedAvatarId } = await requestAvatarToken();
+      if (!serverUrl || !token || !selectedAvatarId) {
+        throw new Error("The avatar connection response is missing its server URL, token, or configured avatar ID.");
       }
+      setAvatarId(selectedAvatarId);
 
       const room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
@@ -70,6 +73,7 @@ export const useLiveKitAvatar = () => {
         if (roomRef.current === room) {
           roomRef.current = null;
           setVideoTrack(null);
+          setAvatarId("");
           setIsMicrophoneEnabled(false);
           audioRef.current?.replaceChildren();
           setStatus("disconnected");
@@ -87,6 +91,7 @@ export const useLiveKitAvatar = () => {
         || connectionError.message
         || "Could not connect to the avatar.";
       setError(message);
+      setAvatarId("");
       setStatus("error");
       throw connectionError;
     }
@@ -112,6 +117,7 @@ export const useLiveKitAvatar = () => {
     connect,
     disconnect,
     error,
+    avatarId,
     status,
     videoTrack,
     videoRef,
