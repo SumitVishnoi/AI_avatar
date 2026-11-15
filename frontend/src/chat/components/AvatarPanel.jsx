@@ -17,13 +17,14 @@ const AvatarPanel = ({
     error: "Connection issue",
     disconnected: "Ready when you are",
   }[avatarStatus];
+  const avatarLabel = avatarId ? "Selected avatar" : "Mira";
 
   return (
     <aside className="avatar-panel" aria-label="Live avatar">
       <div className="avatar-panel-top">
         <div>
           <div className="section-kicker avatar-kicker">LIVE COMPANION</div>
-          <h2>Meet Mira</h2>
+          <h2>{avatarId ? "Selected avatar" : "Meet Mira"}</h2>
         </div>
         <span className={`connection-pill ${avatarStatus}`}><span />{statusLabel}</span>
       </div>
@@ -38,37 +39,36 @@ const AvatarPanel = ({
         <div className="stage-grid" />
         <div className="stage-orbit orbit-one" />
         <div className="stage-orbit orbit-two" />
-        <div className="avatar-idle-art" aria-hidden="true">
-          <span className="avatar-idle-halo" />
-          <span className="avatar-idle-bust"><i /></span>
-          <span className="avatar-idle-sparkle"><Icon name="sparkle" size={17} /></span>
-        </div>
-        <video ref={videoRef} className="avatar-video" autoPlay playsInline aria-label="Mira avatar video" />
+        <video ref={videoRef} className="avatar-video" autoPlay playsInline aria-label={`${avatarLabel} avatar video`} />
         <div ref={audioRef} className="avatar-audio" />
         {!videoTrack && (
           <div className="avatar-placeholder-copy">
             <span className="avatar-presence"><i /></span>
             <strong>
               {isMicrophoneEnabled
-                ? "Mira is listening."
+                ? `${avatarLabel} is listening.`
                 : avatarStatus === "connected"
-                  ? "Mira is joining the room."
+                  ? `${avatarLabel} is joining the room.`
                   : avatarStatus === "connecting"
-                    ? "Connecting Mira…"
-                    : "Your companion, in real time."}
+                    ? `Connecting ${avatarLabel.toLowerCase()}…`
+                    : avatarId
+                      ? "Selected avatar is ready to connect."
+                      : "Your companion, in real time."}
             </strong>
             <span>
               {isMicrophoneEnabled
                 ? "Speak naturally, or use the chat to share a thought."
                 : avatarStatus === "connected"
-                  ? "Waiting for Mira to join the room…"
-                  : "Start a conversation to bring Mira to life."}
+                  ? `Waiting for ${avatarId ? "the selected avatar" : "Mira"} to join the room…`
+                  : avatarId
+                    ? "Start a conversation to bring your selected avatar to life."
+                    : "Start a conversation to bring Mira to life."}
             </span>
           </div>
         )}
         <div className="stage-caption">
           <span className="caption-orb"><Icon name="sparkle" size={13} /></span>
-          <span>Mira</span>
+          <span>{avatarId ? "Avatar" : "Mira"}</span>
           <i />
           {isMicrophoneEnabled && <span className="listening-label">Listening</span>}
         </div>
@@ -99,7 +99,7 @@ const AvatarPanel = ({
           disabled={avatarStatus === "connecting"}
         >
           <Icon name={avatarStatus === "connected" ? "close" : "video"} size={17} />
-          {avatarStatus === "connected" ? "End session" : avatarStatus === "connecting" ? "Connecting…" : "Talk to Mira"}
+          {avatarStatus === "connected" ? "End session" : avatarStatus === "connecting" ? "Connecting…" : avatarId ? "Talk to avatar" : "Talk to Mira"}
         </button>
       </div>
 
