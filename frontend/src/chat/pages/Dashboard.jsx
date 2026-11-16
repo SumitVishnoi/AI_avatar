@@ -47,7 +47,6 @@ const Dashboard = () => {
     connect: connectAvatar,
     disconnect: disconnectAvatar,
     error: avatarError,
-    avatarId,
     status: avatarStatus,
     videoTrack,
     videoRef,
@@ -249,7 +248,6 @@ const Dashboard = () => {
           />
           <AvatarPanel
             avatarError={avatarError}
-            avatarId={avatarId}
             avatarStatus={avatarStatus}
             audioRef={audioRef}
             disconnectOrConnect={handleAvatarToggle}
